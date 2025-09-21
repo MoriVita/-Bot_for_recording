@@ -1,0 +1,13 @@
+from aiogram.fsm.state import StatesGroup, State
+
+class Booking(StatesGroup):
+    service = State()
+    day = State()
+    time = State()
+    confirm = State()
+    extras = State()
+
+
+class AdminFSM(StatesGroup):
+    day = State()
+    time = State()
