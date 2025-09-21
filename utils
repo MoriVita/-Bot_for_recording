@@ -1,0 +1,19 @@
+from datetime import datetime
+
+schedule = {}
+
+def ensure_day(day_iso: str):
+    if day_iso not in schedule:
+        schedule[day_iso] = {}
+
+def format_day(day_iso: str) -> str:
+    d = datetime.strptime(day_iso, "%Y-%m-%d").date()
+    months = [
+        "января", "февраля", "марта", "апреля", "мая", "июня",
+        "июля", "августа", "сентября", "октября", "ноября", "декабря"
+    ]
+
+    return f"{d.day} {months[d.month - 1]} {d.year}"
+
+def iso(d) -> str:
+    return d.strftime("%Y-%m-%d")
