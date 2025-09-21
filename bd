@@ -1,0 +1,81 @@
+import asyncpg
+import asyncio
+from datetime import datetime, time as dt_time
+from contextlib import asynccontextmanager
+
+# контекстный менеджер для соединения
+@asynccontextmanager
+async def get_connection():
+    conn = await asyncpg.connect(
+        host='localhost',
+        port=5432,
+        user='myuser',
+        password='mypassword',
+        database='mydb'
+    )
+    try:
+        yield conn
+    finally:
+        await conn.close()
+
+
+# функция для создания бронирования
+async def create_booking(conn, user_id, service, sub_service, extras, date_input, time_input):
+    """
+    date_input: str 'YYYY-MM-DD' или datetime.date
+    time_input: str 'HH:MM' или datetime.time
+    """
+
+    # Преобразуем дату в datetime.date, если это строка
+    if isinstance(date_input, str):
+        date_obj = datetime.strptime(date_input, "%Y-%m-%d").date()
+    elif isinstance(date_input, datetime):
+        date_obj = date_input.date()
+    else:
+        date_obj = date_input  # предполагаем, что это уже date
+
+    # Преобразуем время в datetime.time, если это строка
+    if isinstance(time_input, str):
+        time_obj = dt_time.fromisoformat(time_input)
+    else:
+        time_obj = time_input  # предполагаем, что это уже time
+
+    # extras в строку, если это список
+    extras_str = ','.join(extras) if isinstance(extras, list) else extras
+
+    # Вставляем запись в таблицу bookings
+    booking_id = await conn.fetchval("""
+        INSERT INTO bookings(user_id, service, sub_service, extras, date, time, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        RETURNING id
+    """, user_id, service, sub_service, extras_str, date_obj, time_obj)
+
+    # Обновляем слот
+    await conn.execute("""
+        UPDATE slots
+        SET status='booked', booking_id=$1
+        WHERE date=$2 AND time=$3
+    """, booking_id, date_obj, time_obj)
+
+    return booking_id
+
+
+# пример вызова
+async def main():
+    async with get_connection() as conn:
+        user_id = 1
+        service = "наращивание"
+        sub_service = "классика"
+        extras = ['Экстра лиса']
+        date_str = "2025-10-18"
+        time_str = "13:00"
+
+        booking_id = await create_booking(conn, user_id, service, sub_service, extras, date_str, time_str)
+        print("Booking ID:", booking_id)
+
+        rows = await conn.fetch('SELECT * FROM bookings;')
+        print(rows)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
