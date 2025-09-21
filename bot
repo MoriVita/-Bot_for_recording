@@ -1,0 +1,33 @@
+import asyncio
+from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
+from api import API_TOKEN
+from admin import admin_router
+from user import user_router
+from bd import get_connection
+from notifier import start_notifier_loop
+
+
+async def main():
+    async with get_connection() as conn:
+
+ 
+
+ 
+        bot = Bot(token=API_TOKEN)
+        dp = Dispatcher(storage=MemoryStorage())
+        dp.include_router(admin_router)
+        dp.include_router(user_router)
+
+  
+        asyncio.create_task(start_notifier_loop(conn, bot))
+
+
+        await dp.start_polling(bot)
+
+
+        await conn.close()
+        await bot.session.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
