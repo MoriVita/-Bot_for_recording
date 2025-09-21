@@ -1,0 +1,36 @@
+import asyncio
+from datetime import datetime, timedelta, time as dt_time
+
+
+async def check_notifications(conn, bot):
+    now = datetime.now().replace(second=0, microsecond=0)
+    target_time = now + timedelta(hours=24)
+
+    rows = await conn.fetch("""
+        SELECT id, user_id, service, sub_service, date, time
+        FROM bookings
+        WHERE notified = FALSE
+    """)
+
+    for row in rows:
+        booking_datetime = datetime.combine(row['date'], row['time'])
+
+        # Проверяем дату и время (строго 24 часа вперёд, ±1 минута)
+        if booking_datetime.date() == target_time.date() and \
+                target_time <= booking_datetime < target_time + timedelta(minutes=1):
+
+            text = f"Напоминание! Завтра в {row['time']} у вас {row['service']}"
+            if row['sub_service']:
+                text += f" ({row['sub_service']})"
+            await bot.send_message(row["user_id"], text)
+            await conn.execute("UPDATE bookings SET notified = TRUE WHERE id=$1", row["id"])
+
+
+async def start_notifier_loop(conn, bot):
+    try:
+        while True:
+            await check_notifications(conn, bot)
+            await asyncio.sleep(60)  # проверяем каждую минуту
+    except asyncio.CancelledError:
+        # если бот выключился, выходим из цикла
+        pass
