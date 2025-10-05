@@ -41,7 +41,7 @@ async def kb_slots_for_day(day_iso: str) -> InlineKeyboardMarkup:
 
     if not rows:
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Нет слотов", callback_data="admin:none")],
+            [InlineKeyboardButton(text="Нет слотов", callback_data="admin:none")],
             [InlineKeyboardButton(text="Назад", callback_data="admin:back")]
         ])
 
@@ -49,7 +49,7 @@ async def kb_slots_for_day(day_iso: str) -> InlineKeyboardMarkup:
     row = []
     for r in rows:
         t = r["time"].strftime("%H:%M")
-        row.append(InlineKeyboardButton(text=f"🗑 {t}", callback_data=f"admin:del_slot:{day_iso}:{t}"))
+        row.append(InlineKeyboardButton(text=f"{t}", callback_data=f"admin:del_slot:{day_iso}:{t}"))
         if len(row) == 4:  # максимум 4 кнопки в строке
             buttons.append(row)
             row = []
@@ -75,20 +75,20 @@ async def admin_delete_slot(cb: types.CallbackQuery, state: FSMContext):
         await cb.message.edit_text(new_text, reply_markup=kb)
     except TelegramBadRequest as e:
         if "message is not modified" in str(e):
-            await cb.answer("Слоты не изменились 🙂")
+            await cb.answer("Слоты не изменились")
         else:
             raise
 
 
 def kb_admin() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📅 Посмотреть слоты", callback_data="admin:view")],
-        [InlineKeyboardButton(text="✅ Свободные слоты", callback_data="admin:view_free")],
-        [InlineKeyboardButton(text="📌 Занятые слоты", callback_data="admin:view_booked")],
-        [InlineKeyboardButton(text="➕ Добавить слот", callback_data="admin:add_slot")],
-        [InlineKeyboardButton(text="➖ Удалить слот", callback_data="admin:del_slot")],
-        [InlineKeyboardButton(text="🧹 Очистить день", callback_data="admin:clear_day")],
-        [InlineKeyboardButton(text="🚪 Выйти", callback_data="admin:exit")]
+        [InlineKeyboardButton(text="Посмотреть слоты", callback_data="admin:view")],
+        [InlineKeyboardButton(text="Свободные слоты", callback_data="admin:view_free")],
+        [InlineKeyboardButton(text="Занятые слоты", callback_data="admin:view_booked")],
+        [InlineKeyboardButton(text="Добавить слот", callback_data="admin:add_slot")],
+        [InlineKeyboardButton(text="Удалить слот", callback_data="admin:del_slot")],
+        [InlineKeyboardButton(text="Очистить день", callback_data="admin:clear_day")],
+        [InlineKeyboardButton(text="Выйти", callback_data="admin:exit")]
     ])
 
 # ---------------- ДЕЙСТВИЯ С БАЗОЙ ---------------- #
@@ -103,7 +103,7 @@ async def add_slots(day_iso: str, times: list[str]):
                 VALUES ($1, $2, 'free')
                 ON CONFLICT (date, time) DO NOTHING
             """, date_obj, time_obj)
-    return f"✅ Добавлены слоты: {', '.join(times)} на {format_day(day_iso)}"
+    return f"Добавлены слоты: {', '.join(times)} на {format_day(day_iso)}"
 
 async def del_slot(day_iso: str, time_str: str):
     date_obj = datetime.strptime(day_iso, "%Y-%m-%d").date()
@@ -113,7 +113,7 @@ async def del_slot(day_iso: str, time_str: str):
             DELETE FROM slots
             WHERE date = $1 AND time = $2
         """, date_obj, time_obj)
-    return f"🗑 Слот {time_str} на {format_day(day_iso)} удалён"
+    return f"Слот {time_str} на {format_day(day_iso)} удалён"
 
 async def clear_day(day_iso: str):
     date_obj = datetime.strptime(day_iso, "%Y-%m-%d").date()
@@ -133,8 +133,8 @@ async def view_all_free():
             ORDER BY s.date, s.time
         """)
     if not rows:
-        return "❌ Нет свободных слотов"
-    return "✅ Свободные слоты:\n" + "\n".join(
+        return "Нет свободных слотов"
+    return "Свободные слоты:\n" + "\n".join(
         f"{r['date'].strftime('%d.%m.%Y')} {r['time'].strftime('%H:%M')}" for r in rows
     )
 
@@ -147,8 +147,8 @@ async def view_all_booked():
             ORDER BY s.date, s.time
         """)
     if not rows:
-        return "❌ Нет занятых слотов"
-    return "📌 Занятые слоты:\n" + "\n".join(
+        return "Нет занятых слотов"
+    return "Занятые слоты:\n" + "\n".join(
         f"{r['date'].strftime('%d.%m.%Y')} {r['time'].strftime('%H:%M')} — {r['service']} ({r['sub_service']}) [user {r['user_id']}]"
         for r in rows
     )
@@ -162,7 +162,7 @@ async def view_all_slots():
             ORDER BY s.date, s.time
         """)
     if not rows:
-        return "❌ Слотов нет"
+        return "Слотов нет"
     lines = []
     for r in rows:
         if r["status"] == "free" and r["user_id"] is None:
@@ -171,7 +171,7 @@ async def view_all_slots():
             lines.append(
                 f"{r['date'].strftime('%d.%m.%Y')} {r['time'].strftime('%H:%M')} — занято ({r['service']}, user {r['user_id']})"
             )
-    return "📅 Все слоты:\n" + "\n".join(lines)
+    return "Все слоты:\n" + "\n".join(lines)
 
 # ---------------- КНОПКИ ДАТ ---------------- #
 
@@ -219,7 +219,7 @@ async def admin_start(message: Message, state: FSMContext):
         await message.answer("⛔ У вас нет доступа к админ-панели.")
         return
     await state.clear()
-    await message.answer("🛠 Админ-панель:", reply_markup=kb_admin())
+    await message.answer("Админ-панель:", reply_markup=kb_admin())
 
 # просмотр всех слотов
 @admin_router.callback_query(F.data.in_(["admin:view", "admin:view_free", "admin:view_booked"]))
@@ -247,7 +247,7 @@ async def handle_admin_dates(cb: types.CallbackQuery, state: FSMContext):
 
     if action == "exit":
         await state.clear()
-        await cb.message.edit_text("Вы вышли из админ-панели ✅")
+        await cb.message.edit_text("Вы вышли из админ панели")
         return
 
 
@@ -378,7 +378,7 @@ async def kb_days_with_slots_admin() -> InlineKeyboardMarkup:
 
     if not rows:
         return InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Нет слотов", callback_data="admin:none")],
+            [InlineKeyboardButton(text="Нет слотов", callback_data="admin:none")],
             [InlineKeyboardButton(text="Назад", callback_data="admin:back")]
         ])
 
@@ -390,11 +390,11 @@ async def kb_days_with_slots_admin() -> InlineKeyboardMarkup:
         booked_count = r["booked_count"]
 
         if free_count and booked_count:
-            text = f"{r['date'].strftime('%d.%m')} ✅{free_count} 📌{booked_count}"
+            text = f"{r['date'].strftime('%d.%m')}{free_count} 📌{booked_count}"
         elif free_count:
-            text = f"{r['date'].strftime('%d.%m')} ✅{free_count}"
+            text = f"{r['date'].strftime('%d.%m')}{free_count}"
         else:
-            text = f"{r['date'].strftime('%d.%m')} 📌{booked_count}"
+            text = f"{r['date'].strftime('%d.%m')}{booked_count}"
 
         row.append(InlineKeyboardButton(text=text, callback_data=f"admin:day:{day_iso}"))
 
